@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,6 +20,8 @@ class MyApp extends StatelessWidget {
 }
 
 class WeatherPage extends StatefulWidget {
+  const WeatherPage({super.key});
+
   @override
   _WeatherPageState createState() => _WeatherPageState();
 }
