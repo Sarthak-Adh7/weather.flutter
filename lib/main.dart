@@ -67,10 +67,13 @@ class _WeatherPageState extends State<WeatherPage> {
       final weatherResponse = await http.get(Uri.parse(weatherUrl));
       final forecastResponse = await http.get(Uri.parse(forecastUrl));
 
-      if (weatherResponse.statusCode == 200 && forecastResponse.statusCode == 200) {
+      if (weatherResponse.statusCode == 200 &&
+          forecastResponse.statusCode == 200) {
         setState(() {
           weatherData = jsonDecode(weatherResponse.body);
-          hourlyForecast = jsonDecode(forecastResponse.body)['list'].take(4).toList();
+          hourlyForecast = jsonDecode(
+            forecastResponse.body,
+          )['list'].take(4).toList();
         });
       } else {
         setState(() {
@@ -112,7 +115,8 @@ class _WeatherPageState extends State<WeatherPage> {
 
   Widget buildWeatherInfo() {
     if (isLoading) return CircularProgressIndicator(color: Colors.white);
-    if (errorMessage.isNotEmpty) return Text(errorMessage, style: TextStyle(color: Colors.red));
+    if (errorMessage.isNotEmpty)
+      return Text(errorMessage, style: TextStyle(color: Colors.red));
     if (weatherData == null) return SizedBox.shrink();
 
     double temp = weatherData!['main']['temp'];
@@ -198,11 +202,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 ),
               ),
               SizedBox(height: 20),
-              Expanded(
-                child: Center(
-                  child: buildWeatherInfo(),
-                ),
-              ),
+              Expanded(child: Center(child: buildWeatherInfo())),
               Container(
                 padding: EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
@@ -233,9 +233,13 @@ class _WeatherPageState extends State<WeatherPage> {
                           int idx = entry.key;
                           var forecast = entry.value;
                           String time = DateFormat('HH:mm').format(
-                              DateTime.fromMillisecondsSinceEpoch(
-                                  forecast['dt'] * 1000));
-                          String temp = forecast['main']['temp'].toStringAsFixed(0) + '°C';
+                            DateTime.fromMillisecondsSinceEpoch(
+                              forecast['dt'] * 1000,
+                            ),
+                          );
+                          String temp =
+                              forecast['main']['temp'].toStringAsFixed(0) +
+                              '°C';
                           String condition = forecast['weather'][0]['main'];
                           return _buildHourlyForecast(time, temp, condition);
                         }).toList(),
@@ -252,15 +256,16 @@ class _WeatherPageState extends State<WeatherPage> {
   Widget _buildHourlyForecast(String time, String temp, String condition) {
     return Column(
       children: [
-        Text(
-          time,
-          style: TextStyle(color: Colors.white, fontSize: 16),
-        ),
+        Text(time, style: TextStyle(color: Colors.white, fontSize: 16)),
         SizedBox(height: 8),
         Icon(_getWeatherIcon(condition), color: Colors.white, size: 30),
         Text(
           temp,
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
