@@ -1,9 +1,35 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-void main() => runApp(MyApp());
+import 'login_page.dart'; // Your login screen
+import 'signup_page.dart'; // Optional, if you navigate manually
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyCma38WWkVjMx-oCRZ59XWfu71H5Mpdz9Q",
+        authDomain: "weatherapp-ppp.firebaseapp.com",
+        projectId: "weatherapp-ppp",
+        storageBucket: "weatherapp-ppp.appspot.com",
+        messagingSenderId: "1076854260255",
+        appId: "1:1076854260255:web:701bdb6af1c2957f95cb2a",
+        measurementId: "G-556J0V49RT",
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
+
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -13,8 +39,29 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Weather App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: WeatherPage(),
       debugShowCheckedModeBanner: false,
+      home: AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData) {
+          return const WeatherPage(); // User is logged in
+        } else {
+          return const LoginPage(); // User is NOT logged in
+        }
+      },
     );
   }
 }
@@ -45,9 +92,9 @@ class _WeatherPageState extends State<WeatherPage> {
   void _updateTime() {
     setState(() {
       currentTime = DateFormat('HH:mm').format(DateTime.now());
-      currentDate = DateFormat('MMMM, d').format(DateTime.now());
+      currentDate = DateFormat('MMMM d').format(DateTime.now());
     });
-    Future.delayed(Duration(seconds: 1), _updateTime);
+    Future.delayed(const Duration(seconds: 1), _updateTime);
   }
 
   Future<void> fetchWeather(String city) async {
@@ -71,9 +118,9 @@ class _WeatherPageState extends State<WeatherPage> {
           forecastResponse.statusCode == 200) {
         setState(() {
           weatherData = jsonDecode(weatherResponse.body);
-          hourlyForecast = jsonDecode(
-            forecastResponse.body,
-          )['list'].take(4).toList();
+          hourlyForecast = jsonDecode(forecastResponse.body)['list']
+              .take(4)
+              .toList();
         });
       } else {
         setState(() {
@@ -114,10 +161,11 @@ class _WeatherPageState extends State<WeatherPage> {
   }
 
   Widget buildWeatherInfo() {
-    if (isLoading) return CircularProgressIndicator(color: Colors.white);
-    if (errorMessage.isNotEmpty)
-      return Text(errorMessage, style: TextStyle(color: Colors.red));
-    if (weatherData == null) return SizedBox.shrink();
+    if (isLoading) return const CircularProgressIndicator(color: Colors.white);
+    if (errorMessage.isNotEmpty) {
+      return Text(errorMessage, style: const TextStyle(color: Colors.red));
+    }
+    if (weatherData == null) return const SizedBox.shrink();
 
     double temp = weatherData!['main']['temp'];
     double tempMax = weatherData!['main']['temp_max'];
@@ -129,7 +177,7 @@ class _WeatherPageState extends State<WeatherPage> {
       children: [
         Text(
           '${temp.toStringAsFixed(0)}°',
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 80,
             fontWeight: FontWeight.bold,
@@ -137,114 +185,123 @@ class _WeatherPageState extends State<WeatherPage> {
         ),
         Text(
           weatherCondition,
-          style: TextStyle(color: Colors.white, fontSize: 24),
+          style: const TextStyle(color: Colors.white, fontSize: 24),
         ),
         Text(
           'Max: ${tempMax.toStringAsFixed(0)}° Min: ${tempMin.toStringAsFixed(0)}°',
-          style: TextStyle(color: Colors.white70, fontSize: 18),
+          style: const TextStyle(color: Colors.white70, fontSize: 18),
         ),
-        SizedBox(height: 20),
-        Icon(_getWeatherIcon(weatherCondition), color: Colors.blue, size: 150),
+        const SizedBox(height: 20),
+        Icon(_getWeatherIcon(weatherCondition),
+            color: Colors.blue, size: 150),
       ],
     );
+  }
+
+  void logout() async {
+    await FirebaseAuth.instance.signOut();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text("Logged out")));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Weather App"),
+        backgroundColor: const Color(0xFF1E1E4B),
+        actions: [
+          IconButton(
+            onPressed: logout,
+            icon: const Icon(Icons.logout),
+          )
+        ],
+      ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
+            colors: [Color(0xFF1E1E4B), Color(0xFF4A90E2)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1E1E4B), Color(0xFF4A90E2)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      currentTime,
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    Row(
+                    Text(currentTime,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 18)),
+                    const Row(
                       children: [
                         Icon(Icons.signal_cellular_alt, color: Colors.white),
                         SizedBox(width: 8),
                         Icon(Icons.battery_full, color: Colors.white),
                       ],
-                    ),
+                    )
                   ],
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
                   controller: _controller,
                   onSubmitted: (value) => fetchWeather(value.trim()),
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Search city',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: const TextStyle(color: Colors.white70),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        borderRadius: BorderRadius.circular(20)),
                     suffixIcon: IconButton(
-                      icon: Icon(Icons.search, color: Colors.white),
+                      icon: const Icon(Icons.search, color: Colors.white),
                       onPressed: () => fetchWeather(_controller.text.trim()),
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Expanded(child: Center(child: buildWeatherInfo())),
               Container(
-                padding: EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
                   color: Color(0xFF4A90E2),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Today',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    Text(
-                      currentDate,
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
+                    const Text('Today',
+                        style: TextStyle(color: Colors.white, fontSize: 18)),
+                    Text(currentDate,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 18)),
                   ],
                 ),
               ),
               Container(
-                color: Color(0xFF4A90E2),
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                color: const Color(0xFF4A90E2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: hourlyForecast != null && hourlyForecast!.isNotEmpty
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: hourlyForecast!.asMap().entries.map((entry) {
-                          int idx = entry.key;
                           var forecast = entry.value;
                           String time = DateFormat('HH:mm').format(
-                            DateTime.fromMillisecondsSinceEpoch(
-                              forecast['dt'] * 1000,
-                            ),
-                          );
+                              DateTime.fromMillisecondsSinceEpoch(
+                                  forecast['dt'] * 1000));
                           String temp =
-                              forecast['main']['temp'].toStringAsFixed(0) +
-                              '°C';
+                              '${forecast['main']['temp'].toStringAsFixed(0)}°C';
                           String condition = forecast['weather'][0]['main'];
                           return _buildHourlyForecast(time, temp, condition);
                         }).toList(),
                       )
-                    : SizedBox.shrink(),
+                    : const SizedBox.shrink(),
               ),
             ],
           ),
@@ -256,18 +313,15 @@ class _WeatherPageState extends State<WeatherPage> {
   Widget _buildHourlyForecast(String time, String temp, String condition) {
     return Column(
       children: [
-        Text(time, style: TextStyle(color: Colors.white, fontSize: 16)),
-        SizedBox(height: 8),
+        Text(time, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        const SizedBox(height: 8),
         Icon(_getWeatherIcon(condition), color: Colors.white, size: 30),
         Text(
           temp,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
-}
+} 
